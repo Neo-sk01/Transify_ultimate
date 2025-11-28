@@ -1,0 +1,310 @@
+# Implementation Plan
+
+- [x] 1. Set up project structure and core infrastructure
+  - [x] 1.1 Initialize Expo project with TypeScript
+    - Create new Expo project using `npx create-expo-app`
+    - Configure TypeScript with strict mode
+    - Set up path aliases for clean imports
+    - _Requirements: 11.1, 11.3_
+  - [x] 1.2 Set up shadcn-compatible UI library
+    - Install and configure NativeWind (Tailwind for React Native)
+    - Set up shadcn/ui compatible component structure
+    - Create base theme configuration
+    - _Requirements: 11.2_
+  - [x] 1.3 Set up backend project structure
+    - Initialize Node.js/Express backend with TypeScript
+    - Configure project structure (services, routes, models, utils)
+    - Set up environment configuration
+    - _Requirements: 5.1_
+  - [x] 1.4 Set up testing infrastructure
+    - Install fast-check for property-based testing
+    - Install Jest for unit testing
+    - Configure test runners and coverage reporting
+    - _Requirements: All_
+
+- [x] 2. Implement core data models and validation
+  - [x] 2.1 Create User model with PIN storage
+    - Implement User interface and schema
+    - Implement PIN hashing using bcrypt/argon2
+    - Create validation functions for user data
+    - _Requirements: 1.4, 10.3_
+  - [ ]* 2.2 Write property test for PIN storage encryption
+    - **Property 3: PIN Storage Encryption**
+    - **Validates: Requirements 1.4**
+  - [x] 2.3 Create EmergencyContact model
+    - Implement EmergencyContact interface
+    - Add consent tracking fields
+    - Create validation for notification channels
+    - _Requirements: 4.4, 10.1_
+  - [x] 2.4 Create EmergencySession model
+    - Implement EmergencySession interface
+    - Add status tracking and context fields
+    - Link to evidence portfolio
+    - _Requirements: 2.1, 2.5_
+  - [x] 2.5 Create AuditLogEntry model with hash chaining
+    - Implement AuditLogEntry interface
+    - Create hash generation function incorporating previous hash
+    - Implement integrity verification function
+    - _Requirements: 9.1_
+  - [ ]* 2.6 Write property test for audit log integrity
+    - **Property 16: Audit Log Integrity**
+    - **Validates: Requirements 9.1**
+  - [x] 2.7 Create Evidence and EvidencePortfolio models
+    - Implement Evidence interface with hash field
+    - Implement EvidencePortfolio with hash chain
+    - Create integrity verification function
+    - _Requirements: 3.5_
+  - [ ]* 2.8 Write property test for evidence portfolio integrity
+    - **Property 7: Evidence Portfolio Integrity**
+    - **Validates: Requirements 3.5, 9.1**
+
+- [ ] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Implement Authentication Service
+  - [x] 4.1 Create PIN validation logic
+    - Implement validateCredentials function
+    - Handle both normal and duress PIN types
+    - Return appropriate PinType indicator internally
+    - _Requirements: 1.1, 1.2_
+  - [ ]* 4.2 Write property test for normal PIN authentication
+    - **Property 1: Normal PIN Authentication Status**
+    - **Validates: Requirements 1.1**
+  - [ ]* 4.3 Write property test for duress PIN stealth activation
+    - **Property 2: Duress PIN Stealth Activation**
+    - **Validates: Requirements 1.2, 2.1**
+  - [x] 4.4 Implement verification advice generation
+    - Create generateVerificationAdvice function
+    - Ensure duress responses appear identical to normal
+    - Include recommended routing information
+    - _Requirements: 5.2, 5.3_
+  - [ ]* 4.5 Write property test for verification response completeness
+    - **Property 11: Verification Response Completeness**
+    - **Validates: Requirements 5.2**
+  - [x] 4.6 Implement authentication error handling
+    - Create generic error responses for all failure types
+    - Ensure no PIN type information leakage
+    - _Requirements: 1.5_
+  - [ ]* 4.7 Write property test for authentication failure indistinguishability
+    - **Property 4: Authentication Failure Indistinguishability**
+    - **Validates: Requirements 1.5**
+
+- [ ] 5. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 6. Implement Emergency Protocol Service
+  - [x] 6.1 Create emergency session management
+    - Implement initiateProtocol function
+    - Create session with unique ID and context
+    - Link to evidence portfolio
+    - _Requirements: 2.1, 2.5_
+  - [x] 6.2 Implement operations center notification
+    - Create notifyOperationsCenter function
+    - Implement immediate notification trigger
+    - _Requirements: 2.2_
+  - [x] 6.3 Implement emergency contact notification
+    - Create notifyEmergencyContacts function
+    - Include GPS location in notifications
+    - Generate secure location tracking links
+    - _Requirements: 2.3, 4.1, 4.2, 4.3_
+  - [ ]* 6.4 Write property test for emergency notification content
+    - **Property 9: Emergency Notification Content**
+    - **Validates: Requirements 4.2, 4.3**
+  - [x] 6.5 Implement law enforcement notification
+    - Create notifyLawEnforcement function
+    - Support security companies as recipients
+    - _Requirements: 2.4_
+  - [ ]* 6.6 Write property test for emergency notification completeness
+    - **Property 5: Emergency Notification Completeness**
+    - **Validates: Requirements 2.2, 2.3, 2.4**
+  - [x] 6.7 Implement protocol deactivation
+    - Create deactivateProtocol function
+    - Stop evidence capture
+    - Log resolution reason
+    - _Requirements: 2.5_
+
+- [ ] 7. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 8. Implement Evidence Capture and Storage
+  - [x] 8.1 Create evidence capture module (mobile)
+    - Implement location capture using Expo Location
+    - Implement device detection using Expo Bluetooth/WiFi
+    - Create capture start/stop functions
+    - _Requirements: 2.5, 3.1, 3.4, 11.3_
+  - [ ]* 8.2 Write property test for emergency evidence capture activation
+    - **Property 6: Emergency Evidence Capture Activation**
+    - **Validates: Requirements 2.5, 3.4**
+  - [x] 8.3 Implement evidence storage service
+    - Create createPortfolio function
+    - Implement appendEvidence with hash chaining
+    - Create getPortfolio with access control
+    - _Requirements: 3.5, 3.6_
+  - [ ]* 8.4 Write property test for evidence access authorization
+    - **Property 8: Evidence Access Authorization**
+    - **Validates: Requirements 3.6**
+  - [ ]* 8.5 Write property test for evidence access audit trail
+    - **Property 23: Evidence Access Audit Trail**
+    - **Validates: Requirements 9.5**
+
+- [ ] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. Implement Notification Service
+  - [x] 10.1 Create multi-channel notification service
+    - Implement sendSMS function
+    - Implement sendPushNotification function
+    - Implement sendEmail function
+    - _Requirements: 4.1_
+  - [x] 10.2 Implement secure location link generation
+    - Create generateSecureLocationLink function
+    - Include session ID and recipient verification
+    - _Requirements: 4.3_
+
+- [x] 11. Implement Emergency Contact Management
+  - [x] 11.1 Create contact registration with consent
+    - Implement addContact function
+    - Require consent verification before activation
+    - _Requirements: 4.4, 10.1_
+  - [ ]* 11.2 Write property test for contact consent requirement
+    - **Property 10: Contact Consent Requirement**
+    - **Validates: Requirements 4.4**
+  - [x] 11.3 Implement contact management functions
+    - Create removeContact function
+    - Create getContacts function
+    - _Requirements: 4.4_
+
+- [x] 12. Implement Institution Integration API
+  - [x] 12.1 Create REST API endpoints for banks
+    - Implement /verify endpoint
+    - Implement /transaction-advice endpoint
+    - _Requirements: 5.1, 5.2_
+  - [x] 12.2 Implement duress transaction advice
+    - Create logic to advise banks on limitations
+    - Ensure user-facing response appears normal
+    - _Requirements: 5.3_
+  - [ ]* 12.3 Write property test for duress transaction advice stealth
+    - **Property 12: Duress Transaction Advice Stealth**
+    - **Validates: Requirements 5.3**
+  - [x] 12.4 Implement cardless authentication
+    - Create cardless auth endpoint for ATMs
+    - Create cardless auth endpoint for merchants
+    - Apply same validations as card-present
+    - _Requirements: 6.1, 6.2, 6.4, 7.2, 7.3_
+  - [ ]* 12.5 Write property test for cardless authentication equivalence
+    - **Property 13: Cardless Authentication Equivalence**
+    - **Validates: Requirements 6.1, 6.4, 7.2**
+  - [ ]* 12.6 Write property test for successful authentication proceed advice
+    - **Property 14: Successful Authentication Proceed Advice**
+    - **Validates: Requirements 6.2, 7.3**
+  - [x] 12.7 Implement cardless duress handling
+    - Trigger emergency protocols for duress PIN
+    - Return normal proceed advice to institution
+    - _Requirements: 6.3, 7.4_
+  - [ ]* 12.8 Write property test for cardless duress stealth operation
+    - **Property 15: Cardless Duress Stealth Operation**
+    - **Validates: Requirements 6.3, 7.4**
+
+- [ ] 13. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 14. Implement Audit and Compliance Service
+  - [x] 14.1 Create audit logging service
+    - Implement logEvent function with hash chaining
+    - Create event type handlers
+    - _Requirements: 8.1, 9.1_
+  - [x] 14.2 Implement audit report generation
+    - Create generateReport function
+    - Include all event types in time range
+    - _Requirements: 9.2_
+  - [ ]* 14.3 Write property test for audit report completeness
+    - **Property 18: Audit Report Completeness**
+    - **Validates: Requirements 9.2**
+  - [x] 14.4 Implement data export functionality
+    - Create exportUserData function
+    - Include all personal data for user
+    - _Requirements: 9.4_
+  - [ ]* 14.5 Write property test for data export round trip
+    - **Property 19: Data Export Round Trip**
+    - **Validates: Requirements 9.4**
+  - [x] 14.6 Implement data deletion functionality
+    - Create deleteUserData function
+    - Respect legal holds
+    - _Requirements: 9.4, 10.4_
+
+- [x] 15. Implement Admin Access Control
+  - [x] 15.1 Create admin authentication with MFA
+    - Implement multi-factor authentication flow
+    - Create role-based access control
+    - _Requirements: 8.4_
+  - [ ]* 15.2 Write property test for admin access authorization
+    - **Property 17: Admin Access Authorization**
+    - **Validates: Requirements 8.4**
+
+- [-] 16. Implement Data Privacy Controls
+  - [x] 16.1 Implement personal data encryption
+    - Encrypt sensitive fields at rest
+    - Create encryption/decryption utilities
+    - _Requirements: 10.3_
+  - [ ]* 16.2 Write property test for personal data encryption
+    - **Property 20: Personal Data Encryption**
+    - **Validates: Requirements 10.3**
+  - [x] 16.3 Implement data retention enforcement
+    - Create retention period tracking
+    - Implement automatic purge for expired data
+    - Respect legal holds
+    - _Requirements: 10.4_
+  - [ ]* 16.4 Write property test for data retention enforcement
+    - **Property 21: Data Retention Enforcement**
+    - **Validates: Requirements 10.4**
+  - [x] 16.5 Implement registration consent flow
+    - Require consent before user activation
+    - Create consent record management
+    - _Requirements: 10.1_
+  - [ ]* 16.6 Write property test for registration consent requirement
+    - **Property 22: Registration Consent Requirement**
+    - **Validates: Requirements 10.1**
+
+- [ ] 17. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 18. Implement Mobile App UI
+  - [x] 18.1 Create PIN entry screen
+    - Build PIN input component with shadcn styling
+    - Handle both normal and duress PIN submission
+    - Show generic feedback (no PIN type indication)
+    - _Requirements: 1.1, 1.2, 11.2_
+  - [x] 18.2 Create emergency contact management screen
+    - Build contact list with add/remove functionality
+    - Show consent status for each contact
+    - _Requirements: 4.4, 11.2_
+  - [x] 18.3 Create user registration flow
+    - Build registration screens with consent collection
+    - Implement PIN setup (normal and duress)
+    - _Requirements: 10.1, 11.2_
+  - [x] 18.4 Create settings and profile screens
+    - Build profile management UI
+    - Add data export request functionality
+    - _Requirements: 9.4, 11.2_
+
+- [x] 19. Wire up mobile app to backend
+  - [x] 19.1 Implement API client
+    - Create typed API client for all endpoints
+    - Handle authentication tokens
+    - Implement error handling
+    - _Requirements: 5.1_
+  - [x] 19.2 Connect PIN entry to authentication service
+    - Wire PIN submission to /verify endpoint
+    - Handle success and error responses
+    - _Requirements: 1.1, 1.2_
+  - [x] 19.3 Connect evidence capture to backend
+    - Stream location data during emergencies
+    - Upload device scan results
+    - _Requirements: 2.5, 3.4_
+  - [x] 19.4 Connect emergency contact management
+    - Wire contact CRUD operations
+    - Handle consent verification flow
+    - _Requirements: 4.4_
+
+- [ ] 20. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
