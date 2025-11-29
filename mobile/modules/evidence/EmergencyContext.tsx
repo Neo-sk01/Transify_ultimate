@@ -58,20 +58,23 @@ export function EmergencyProvider({ children }: { children: React.ReactNode }) {
             // For now, we'll try to insert. If RLS fails, we might need to sign in first.
             // But let's assume the auth flow happened before this.
 
-            // Get current user
+            // Get current user, or use test user for development
             const { data: { user } } = await supabase.auth.getUser();
 
-            if (user) {
-                await supabase.from('emergency_sessions').insert({
-                    id: id,
-                    user_id: user.id,
-                    status: 'active',
-                    trigger_type: 'duress_pin', // Default for now, could be passed in
-                    started_at: new Date().toISOString(),
-                });
-            } else {
-                console.warn('No authenticated user found for emergency session');
+            // Use test user ID if no authenticated user (for testing)
+            const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+
+            if (!user) {
+                console.warn('No authenticated user - using test user ID for development');
             }
+
+            await supabase.from('emergency_sessions').insert({
+                id: id,
+                user_id: userId,
+                status: 'active',
+                trigger_type: 'duress_pin', // Default for now, could be passed in
+                started_at: new Date().toISOString(),
+            });
 
             // Start capture with callbacks
             await startCapture(id, {}, {

@@ -8,7 +8,7 @@ import { EmergencyProvider, useEmergency } from '@/modules/evidence';
 import { StealthCamera } from '@/components/StealthCamera';
 
 function AppContent() {
-  const { sessionId, uploadEvidence } = useEmergency();
+  const { sessionId, uploadEvidence, startEmergencySession, stopEmergencySession } = useEmergency();
 
   return (
     <View className="flex-1 items-center justify-center bg-background p-4">
@@ -27,8 +27,24 @@ function AppContent() {
       </Muted>
 
       <View className="w-full max-w-xs gap-3">
-        <Button variant="default">Get Started</Button>
-        <Button variant="outline">Learn More</Button>
+        <Button
+          variant="default"
+          onPress={() => {
+            const testSessionId = `test-${Date.now()}`;
+            startEmergencySession(testSessionId);
+          }}
+        >
+          🚨 Test Emergency (Dashboard Demo)
+        </Button>
+        <Button
+          variant="outline"
+          onPress={() => {
+            if (sessionId) stopEmergencySession();
+          }}
+          disabled={!sessionId}
+        >
+          Stop Emergency
+        </Button>
       </View>
 
       <StatusBar style="auto" />

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import { BleManager, Device as BleDevice } from 'react-native-ble-plx';
-import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
+import NetInfo, { NetInfoStateType } from 'react-native-netinfo';
 import { DeviceInfo } from './types';
 
 export interface DeviceScanResult {
@@ -10,14 +10,24 @@ export interface DeviceScanResult {
   error?: string;
 }
 
-// Initialize BLE Manager
-const bleManager = new BleManager();
+// Initialize BLE Manager safely
+let bleManager: BleManager | null = null;
+try {
+  bleManager = new BleManager();
+} catch (e) {
+  console.warn('BleManager failed to initialize (likely running in Expo Go):', e);
+}
 
 /**
  * Scan for nearby Bluetooth devices
  * Requirements: 3.2, 3.3
  */
 export async function scanBluetoothDevices(): Promise<DeviceScanResult> {
+  if (!bleManager) {
+    console.warn('Bluetooth scanning skipped: BleManager not initialized');
+    return { success: true, devices: [] }; // Return empty list instead of error for demo
+  }
+
   const devices: DeviceInfo[] = [];
   const deviceMap = new Map<string, BleDevice>();
 
@@ -30,11 +40,11 @@ export async function scanBluetoothDevices(): Promise<DeviceScanResult> {
 
     return new Promise((resolve) => {
       // Scan for 5 seconds
-      bleManager.startDeviceScan(null, null, (error, device) => {
+      bleManager!.startDeviceScan(null, null, (error, device) => {
         if (error) {
           console.error('BLE Scan error:', error);
           // Don't reject, just resolve with what we have
-          bleManager.stopDeviceScan();
+          bleManager!.stopDeviceScan();
           resolve({ success: false, devices: [], error: error.message });
           return;
         }
@@ -54,7 +64,7 @@ export async function scanBluetoothDevices(): Promise<DeviceScanResult> {
 
       // Stop scanning after 5 seconds
       setTimeout(() => {
-        bleManager.stopDeviceScan();
+        bleManager!.stopDeviceScan();
         resolve({ success: true, devices });
       }, 5000);
     });
