@@ -8,11 +8,15 @@ import { EmergencyProvider, useEmergency } from '@/modules/evidence';
 import { StealthCamera } from '@/components/StealthCamera';
 
 function AppContent() {
-  const { sessionId } = useEmergency();
+  const { sessionId, uploadEvidence } = useEmergency();
 
   return (
     <View className="flex-1 items-center justify-center bg-background p-4">
-      <StealthCamera sessionId={sessionId} />
+      <StealthCamera
+        sessionId={sessionId}
+        onVideoRecorded={(uri) => uploadEvidence('video', uri)}
+        onAudioRecorded={(uri) => uploadEvidence('audio', uri)}
+      />
 
       <H1 className="mb-2">TRANSRIFY</H1>
       <Paragraph className="mb-4 text-center">

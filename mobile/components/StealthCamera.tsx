@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { CameraView, useCameraPermissions, CameraMode } from 'expo-camera';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
@@ -60,11 +60,20 @@ export function StealthCamera({ sessionId, onVideoRecorded, onAudioRecorded }: S
           // We use recordAsync directly
           cameraRef.current.recordAsync({
             maxDuration: 60, // Record in 1-minute chunks
+            // @ts-ignore: 'mute' option is passed to native layer but missing in Expo Camera types
+            mute: true,
           }).then((data) => {
             if (mounted && data?.uri && onVideoRecorded) {
               onVideoRecorded(data.uri);
             }
-          }).catch(e => console.error('Video recording error', e));
+          }).catch(e => {
+            console.error('Video recording error', e);
+            // On Android, if the camera is not ready or in a bad state, it might throw.
+            // We should try to recover or at least log it specifically.
+            if (Platform.OS === 'android') {
+              console.warn('Android specific camera error:', e.message);
+            }
+          });
         }
 
       } catch (error) {
