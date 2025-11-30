@@ -11,11 +11,19 @@ export interface DeviceScanResult {
 }
 
 // Initialize BLE Manager safely
+// Initialize BLE Manager safely
 let bleManager: BleManager | null = null;
 try {
-  bleManager = new BleManager();
+  // Check if we are running in Expo Go or if native module is missing
+  if (Platform.OS !== 'web') {
+    try {
+      bleManager = new BleManager();
+    } catch (e) {
+      console.warn('BleManager failed to initialize (likely running in Expo Go):', e);
+    }
+  }
 } catch (e) {
-  console.warn('BleManager failed to initialize (likely running in Expo Go):', e);
+  console.warn('BleManager failed to initialize:', e);
 }
 
 /**
@@ -106,6 +114,36 @@ export async function scanWifiNetworks(): Promise<DeviceScanResult> {
     const errorMessage = error instanceof Error ? error.message : 'Unknown WiFi error';
     return { success: false, devices: [], error: errorMessage };
   }
+}
+
+/**
+ * Detect all nearby devices (Bluetooth + WiFi)
+ */
+export async function detectNearbyDevices(): Promise<DeviceScanResult> {
+  const devices: DeviceInfo[] = [];
+  let error: string | undefined;
+
+  // Scan Bluetooth
+  const bleResult = await scanBluetoothDevices();
+  if (bleResult.success) {
+    devices.push(...bleResult.devices);
+  } else {
+    error = bleResult.error;
+  }
+
+  // Scan WiFi
+  const wifiResult = await scanWifiNetworks();
+  if (wifiResult.success) {
+    devices.push(...wifiResult.devices);
+  } else if (!error) {
+    error = wifiResult.error;
+  }
+
+  return {
+    success: devices.length > 0,
+    devices,
+    error
+  };
 }
 
 /**

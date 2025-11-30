@@ -2,10 +2,19 @@ import './global.css';
 
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Button } from '@/components/ui';
 import { H1, Paragraph, Muted } from '@/components/ui';
 import { EmergencyProvider, useEmergency } from '@/modules/evidence';
 import { StealthCamera } from '@/components/StealthCamera';
+import { PinEntryScreen } from '@/screens/PinEntryScreen';
+import { DashboardScreen } from '@/screens/DashboardScreen';
+import { ConnectedPinEntryScreen } from '@/screens/ConnectedPinEntryScreen';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ToastProvider } from '@/context/ToastContext';
+
+const Stack = createNativeStackNavigator();
 
 function AppContent() {
   const { sessionId, uploadEvidence, startEmergencySession, stopEmergencySession } = useEmergency();
@@ -30,9 +39,15 @@ function AppContent() {
         <Button
           variant="default"
           onPress={() => {
+            if (sessionId) {
+              console.warn('Session already active, ignoring test start request');
+              return;
+            }
+            console.log('Test Emergency button pressed');
             const testSessionId = `test-${Date.now()}`;
             startEmergencySession(testSessionId);
           }}
+          disabled={!!sessionId}
         >
           🚨 Test Emergency (Dashboard Demo)
         </Button>
@@ -54,8 +69,18 @@ function AppContent() {
 
 export default function App() {
   return (
-    <EmergencyProvider>
-      <AppContent />
-    </EmergencyProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <EmergencyProvider>
+          <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="PinEntry" component={PinEntryScreen} />
+              <Stack.Screen name="Dashboard" component={DashboardScreen} />
+              <Stack.Screen name="ConnectedPinEntry" component={ConnectedPinEntryScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </EmergencyProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

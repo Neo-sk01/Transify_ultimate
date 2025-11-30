@@ -56,26 +56,25 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check session but fetch data regardless for demo
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) fetchDashboardData();
-      else setLoading(false);
     });
+
+    // Always fetch data immediately
+    fetchDashboardData();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) fetchDashboardData();
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!session) return;
-
-    // Realtime subscription
+    // Realtime subscription - Always subscribe for demo
     const channel = supabase
       .channel('dashboard')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
@@ -86,7 +85,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, []); // Run once on mount
 
   // Auth temporarily disabled for testing
   // if (!session) {

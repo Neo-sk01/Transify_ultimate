@@ -14,6 +14,7 @@ import {
   type TransactionType,
 } from '@/services/api';
 import { captureLocation } from '@/modules/evidence';
+import { useToast } from '@/context/ToastContext';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -59,6 +60,7 @@ export function useAuth(config?: {
   const [transactionType, setTransactionTypeState] = useState<TransactionType>(
     config?.defaultTransactionType || 'login'
   );
+  const { showToast } = useToast();
 
   /**
    * Submit PIN for verification
@@ -109,6 +111,7 @@ export function useAuth(config?: {
             error: errorMessage,
           }));
           config?.onError?.(errorMessage);
+          showToast(errorMessage, 'error');
           return { success: false, error: errorMessage };
         }
 
@@ -123,6 +126,7 @@ export function useAuth(config?: {
             error: errorMessage,
           }));
           config?.onError?.(errorMessage);
+          showToast(errorMessage, 'error');
           return { success: false, error: errorMessage };
         }
 
@@ -153,10 +157,11 @@ export function useAuth(config?: {
           error: errorMessage,
         }));
         config?.onError?.(errorMessage);
+        showToast(errorMessage, 'error');
         return { success: false, error: errorMessage };
       }
     },
-    [userId, institutionId, transactionType, config]
+    [userId, institutionId, transactionType, config, showToast]
   );
 
   /**

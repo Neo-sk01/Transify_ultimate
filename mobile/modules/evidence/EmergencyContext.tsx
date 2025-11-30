@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { startCapture, stopCapture } from './evidenceCapture';
 import { LocationData, DeviceInfo } from './types';
+import { useToast } from '@/context/ToastContext';
 
 interface EmergencyContextType {
     sessionId: string | null;
@@ -14,6 +15,7 @@ const EmergencyContext = createContext<EmergencyContextType | undefined>(undefin
 
 export function EmergencyProvider({ children }: { children: React.ReactNode }) {
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const { showToast } = useToast();
 
     const uploadEvidence = useCallback(async (type: 'video' | 'audio', uri: string) => {
         if (!sessionId) return;
@@ -43,14 +45,48 @@ export function EmergencyProvider({ children }: { children: React.ReactNode }) {
             });
 
             console.log(`Uploaded ${type} evidence`);
+            // Optional: Don't show success toast for evidence to keep it stealthy
         } catch (error) {
             console.error(`Failed to upload ${type}:`, error);
+            showToast(`Failed to upload ${type}`, 'error');
         }
-    }, [sessionId]);
+    }, [sessionId, showToast]);
+
+    const stopEmergencySession = useCallback(async () => {
+        console.log('Stopping emergency session');
+        if (sessionId) {
+            stopCapture(sessionId);
+
+            try {
+                await supabase.from('emergency_sessions')
+                    .update({ status: 'resolved', ended_at: new Date().toISOString() })
+                    .eq('id', sessionId);
+                showToast('Emergency session ended', 'info');
+            } catch (error) {
+                console.error('Failed to close session:', error);
+                showToast('Failed to close session', 'error');
+            }
+        }
+        setSessionId(null);
+    }, [sessionId, showToast]);
 
     const startEmergencySession = useCallback(async (id: string) => {
+        // Idempotency check: Don't start if already active with same ID or if any session is active
+        if (sessionId) {
+            if (sessionId === id) {
+                console.log('Emergency session already active with same ID:', id);
+                return;
+            }
+            console.warn('Emergency session already active with different ID. Stopping current first.');
+            await stopEmergencySession();
+        }
+
         console.log('Starting emergency session:', id);
+        // Trace to find out who is calling this repeatedly
+        console.trace('startEmergencySession called by:');
+
         setSessionId(id);
+        showToast('Emergency session started', 'warning');
 
         try {
             // Create session in Supabase
@@ -96,24 +132,9 @@ export function EmergencyProvider({ children }: { children: React.ReactNode }) {
 
         } catch (error) {
             console.error('Failed to start emergency session:', error);
+            showToast('Failed to start emergency session', 'error');
         }
-    }, []);
-
-    const stopEmergencySession = useCallback(async () => {
-        console.log('Stopping emergency session');
-        if (sessionId) {
-            stopCapture(sessionId);
-
-            try {
-                await supabase.from('emergency_sessions')
-                    .update({ status: 'resolved', ended_at: new Date().toISOString() })
-                    .eq('id', sessionId);
-            } catch (error) {
-                console.error('Failed to close session:', error);
-            }
-        }
-        setSessionId(null);
-    }, [sessionId]);
+    }, [sessionId, stopEmergencySession, showToast]);
 
     return (
         <EmergencyContext.Provider value={{ sessionId, startEmergencySession, stopEmergencySession, uploadEvidence }}>
