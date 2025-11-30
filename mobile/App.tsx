@@ -8,19 +8,45 @@ import { PinEntryScreen } from '@/screens/PinEntryScreen';
 import { DashboardScreen } from '@/screens/DashboardScreen';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/context/ToastContext';
-import { EmergencyProvider } from '@/modules/evidence';
+import { EmergencyProvider, useEmergency } from '@/modules/evidence';
+import { supabase } from '@/lib/supabase';
 
 const Stack = createStackNavigator();
 
 // Test PIN: 123456 (normal) or 654321 (duress - triggers emergency)
 function PinEntryWrapper({ navigation }: any) {
+  const { startEmergencySession } = useEmergency();
+
   const handleSubmit = async (pin: string) => {
-    // For testing: accept 123456 as normal PIN, 654321 as duress
-    if (pin === '123456' || pin === '654321') {
+    const isDuress = pin === '654321';
+    const isNormal = pin === '123456';
+
+    if (!isNormal && !isDuress) {
+      return { success: false, error: 'Invalid PIN. Try 123456' };
+    }
+
+    try {
+      // Log the authentication attempt to audit_logs
+      await supabase.from('audit_logs').insert({
+        user_id: '00000000-0000-0000-0000-000000000000', // Test user
+        action: isDuress ? 'DURESS_PIN_ENTERED' : 'NORMAL_PIN_ENTERED',
+        details: { timestamp: new Date().toISOString() },
+      });
+
+      // If duress PIN, start emergency session (stealth - no visible difference)
+      if (isDuress) {
+        const sessionId = `emergency-${Date.now()}`;
+        await startEmergencySession(sessionId);
+      }
+
+      navigation.replace('Dashboard');
+      return { success: true };
+    } catch (error) {
+      console.error('Auth error:', error);
+      // Still allow login even if logging fails
       navigation.replace('Dashboard');
       return { success: true };
     }
-    return { success: false, error: 'Invalid PIN. Try 123456' };
   };
 
   return (
