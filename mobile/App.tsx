@@ -1,86 +1,52 @@
 import './global.css';
+import 'react-native-gesture-handler';
 
-import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Button } from '@/components/ui';
-import { H1, Paragraph, Muted } from '@/components/ui';
-import { EmergencyProvider, useEmergency } from '@/modules/evidence';
-import { StealthCamera } from '@/components/StealthCamera';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PinEntryScreen } from '@/screens/PinEntryScreen';
 import { DashboardScreen } from '@/screens/DashboardScreen';
-import { ConnectedPinEntryScreen } from '@/screens/ConnectedPinEntryScreen';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/context/ToastContext';
+import { EmergencyProvider } from '@/modules/evidence';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
 
-function AppContent() {
-  const { sessionId, uploadEvidence, startEmergencySession, stopEmergencySession } = useEmergency();
+// Test PIN: 123456 (normal) or 654321 (duress - triggers emergency)
+function PinEntryWrapper({ navigation }: any) {
+  const handleSubmit = async (pin: string) => {
+    // For testing: accept 123456 as normal PIN, 654321 as duress
+    if (pin === '123456' || pin === '654321') {
+      navigation.replace('Dashboard');
+      return { success: true };
+    }
+    return { success: false, error: 'Invalid PIN. Try 123456' };
+  };
 
   return (
-    <View className="flex-1 items-center justify-center bg-background p-4">
-      <StealthCamera
-        sessionId={sessionId}
-        onVideoRecorded={(uri) => uploadEvidence('video', uri)}
-        onAudioRecorded={(uri) => uploadEvidence('audio', uri)}
-      />
-
-      <H1 className="mb-2">TRANSRIFY</H1>
-      <Paragraph className="mb-4 text-center">
-        Secure Authentication Platform
-      </Paragraph>
-      <Muted className="mb-8 text-center">
-        Your safety layer for banking and payments
-      </Muted>
-
-      <View className="w-full max-w-xs gap-3">
-        <Button
-          variant="default"
-          onPress={() => {
-            if (sessionId) {
-              console.warn('Session already active, ignoring test start request');
-              return;
-            }
-            console.log('Test Emergency button pressed');
-            const testSessionId = `test-${Date.now()}`;
-            startEmergencySession(testSessionId);
-          }}
-          disabled={!!sessionId}
-        >
-          🚨 Test Emergency (Dashboard Demo)
-        </Button>
-        <Button
-          variant="outline"
-          onPress={() => {
-            if (sessionId) stopEmergencySession();
-          }}
-          disabled={!sessionId}
-        >
-          Stop Emergency
-        </Button>
-      </View>
-
-      <StatusBar style="auto" />
-    </View>
+    <PinEntryScreen
+      onSubmit={handleSubmit}
+      title="TRANSRIFY"
+      description="Enter your 6-digit PIN"
+    />
   );
 }
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <ToastProvider>
-        <EmergencyProvider>
-          <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="PinEntry" component={PinEntryScreen} />
-              <Stack.Screen name="Dashboard" component={DashboardScreen} />
-              <Stack.Screen name="ConnectedPinEntry" component={ConnectedPinEntryScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </EmergencyProvider>
-      </ToastProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <ToastProvider>
+          <EmergencyProvider>
+            <NavigationContainer>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="PinEntry" component={PinEntryWrapper} />
+                <Stack.Screen name="Dashboard" component={DashboardScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </EmergencyProvider>
+        </ToastProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

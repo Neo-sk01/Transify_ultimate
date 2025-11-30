@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Toast, ToastType } from '@/components/ui/toast';
 
 interface ToastMessage {
@@ -31,18 +32,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     return (
         <ToastContext.Provider value={{ showToast, hideToast }}>
             {children}
-            <SafeAreaView style={styles.container} pointerEvents="box-none">
-                <View style={styles.toastContainer} pointerEvents="box-none">
-                    {toasts.map((toast, index) => (
-                        <View key={toast.id} style={{ marginTop: index === 0 ? 0 : 8 }}>
-                            <Toast
-                                {...toast}
-                                onDismiss={hideToast}
-                            />
-                        </View>
-                    ))}
-                </View>
-            </SafeAreaView>
+            <View style={styles.container} pointerEvents="box-none">
+                <SafeAreaView edges={['top']}>
+                    <View style={styles.toastContainer}>
+                        {toasts.map((toast, index) => (
+                            <View key={toast.id} style={{ marginTop: index === 0 ? 0 : 8 }}>
+                                <Toast
+                                    {...toast}
+                                    onDismiss={hideToast}
+                                />
+                            </View>
+                        ))}
+                    </View>
+                </SafeAreaView>
+            </View>
         </ToastContext.Provider>
     );
 }

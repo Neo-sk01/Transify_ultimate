@@ -1,10 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, TextInput, Pressable, Keyboard, ActivityIndicator } from 'react-native';
+import { View, TextInput, Keyboard, ActivityIndicator } from 'react-native';
 import {
   Button,
   Card,
   CardHeader,
-  CardTitle,
   CardDescription,
   CardContent,
   CardFooter,
@@ -14,74 +13,41 @@ import {
   AlertTitle,
   AlertDescription,
 } from '@/components/ui';
-import { cn } from '@/lib/utils';
 
 const PIN_LENGTH = 6;
 
 export interface PinEntryScreenProps {
-  /** Called when PIN is submitted - handles both normal and duress PINs identically */
   onSubmit: (pin: string) => Promise<{ success: boolean; error?: string }>;
-  /** Optional title override */
   title?: string;
-  /** Optional description override */
   description?: string;
-  /** Whether to show loading state */
   isLoading?: boolean;
 }
 
-/**
- * PIN Entry Screen Component
- * 
- * Handles both normal and duress PIN submission with identical UI behavior.
- * Shows generic feedback only - no indication of PIN type.
- * 
- * Requirements: 1.1, 1.2, 11.2
- */
 export function PinEntryScreen({
   onSubmit,
   title = 'Enter PIN',
   description = 'Enter your 6-digit PIN to continue',
   isLoading: externalLoading = false,
 }: PinEntryScreenProps) {
-  const [pin, setPin] = useState<string[]>(Array(PIN_LENGTH).fill(''));
+  const [pin, setPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
   const isLoading = externalLoading || isSubmitting;
 
-  const handleDigitChange = useCallback((index: number, value: string) => {
-    // Only allow single digit
-    const digit = value.replace(/[^0-9]/g, '').slice(-1);
+  const handlePinChange = useCallback((value: string) => {
+    // Only allow digits, max 6
+    const digits = value.replace(/[^0-9]/g, '').slice(0, PIN_LENGTH);
+    setPin(digits);
     
-    setPin(prev => {
-      const newPin = [...prev];
-      newPin[index] = digit;
-      return newPin;
-    });
-
-    // Clear any previous error when user starts typing
     if (error) {
       setError(null);
     }
-
-    // Auto-advance to next input
-    if (digit && index < PIN_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
   }, [error]);
 
-  const handleKeyPress = useCallback((index: number, key: string) => {
-    // Handle backspace - move to previous input
-    if (key === 'Backspace' && !pin[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  }, [pin]);
-
   const handleSubmit = useCallback(async () => {
-    const fullPin = pin.join('');
-    
-    if (fullPin.length !== PIN_LENGTH) {
+    if (pin.length !== PIN_LENGTH) {
       setError('Please enter all 6 digits');
       return;
     }
@@ -91,105 +57,107 @@ export function PinEntryScreen({
     setError(null);
 
     try {
-      // Generic response handling - no PIN type indication
-      const result = await onSubmit(fullPin);
+      const result = await onSubmit(pin);
       
       if (!result.success) {
-        // Generic error message - never reveals PIN type
         setError(result.error || 'Authentication failed');
-        // Clear PIN on failure
-        setPin(Array(PIN_LENGTH).fill(''));
-        inputRefs.current[0]?.focus();
+        setPin('');
+        inputRef.current?.focus();
       }
     } catch {
-      // Generic error for any failure
       setError('Authentication failed');
-      setPin(Array(PIN_LENGTH).fill(''));
-      inputRefs.current[0]?.focus();
+      setPin('');
+      inputRef.current?.focus();
     } finally {
       setIsSubmitting(false);
     }
   }, [pin, onSubmit]);
 
   const handleClear = useCallback(() => {
-    setPin(Array(PIN_LENGTH).fill(''));
+    setPin('');
     setError(null);
-    inputRefs.current[0]?.focus();
+    inputRef.current?.focus();
   }, []);
 
-  const isPinComplete = pin.every(digit => digit !== '');
+  const isPinComplete = pin.length === PIN_LENGTH;
+
+  // Create masked display (dots for entered digits)
+  const maskedDisplay = '•'.repeat(pin.length) + '○'.repeat(PIN_LENGTH - pin.length);
 
   return (
     <View className="flex-1 bg-background">
-      <View className="flex-1 items-center justify-center p-4 pt-12">
+      <View className="flex-1 items-center justify-center p-6">
         <Card className="w-full max-w-sm">
-          <CardHeader className="items-center">
-            <H1 className="mb-2">{title}</H1>
-            <CardDescription className="text-center">
+          <CardHeader className="items-center pb-2">
+            <H1 className="mb-2 text-2xl">{title}</H1>
+            <CardDescription className="text-center text-base">
               {description}
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
-            {/* PIN Input Grid */}
-            <View className="flex-row justify-center gap-2 mb-6">
-              {Array.from({ length: PIN_LENGTH }).map((_, index) => (
-                <PinDigitInput
-                  key={index}
-                  ref={el => { inputRefs.current[index] = el; }}
-                  value={pin[index]}
-                  onChangeText={value => handleDigitChange(index, value)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(index, nativeEvent.key)}
-                  editable={!isLoading}
-                  autoFocus={index === 0}
-                />
-              ))}
+          <CardContent className="pt-4">
+            {/* PIN Display */}
+            <View className="items-center mb-6">
+              <View className="flex-row justify-center gap-2 mb-4">
+                {maskedDisplay.split('').map((char, index) => (
+                  <View
+                    key={index}
+                    className={`w-10 h-12 rounded-lg border-2 items-center justify-center ${
+                      index < pin.length ? 'border-primary bg-primary/10' : 'border-input'
+                    }`}
+                  >
+                    <Muted className="text-2xl font-bold text-foreground">
+                      {char}
+                    </Muted>
+                  </View>
+                ))}
+              </View>
+              
+              {/* Hidden input that captures keyboard */}
+              <TextInput
+                ref={inputRef}
+                value={pin}
+                onChangeText={handlePinChange}
+                keyboardType="number-pad"
+                maxLength={PIN_LENGTH}
+                autoFocus
+                secureTextEntry
+                className="absolute opacity-0 w-full h-12"
+                editable={!isLoading}
+              />
+              
+              {/* Tap area to focus input */}
+              <Muted className="text-sm">Tap here to enter PIN</Muted>
             </View>
 
-            {/* Error Display - Generic message only */}
+            {/* Error Display */}
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
-            {/* Numeric Keypad */}
-            <NumericKeypad
-              onDigitPress={(digit) => {
-                const emptyIndex = pin.findIndex(d => d === '');
-                if (emptyIndex !== -1) {
-                  handleDigitChange(emptyIndex, digit);
-                }
-              }}
-              onBackspace={() => {
-                const lastFilledIndex = pin.map((d, i) => d ? i : -1).filter(i => i !== -1).pop();
-                if (lastFilledIndex !== undefined) {
-                  handleDigitChange(lastFilledIndex, '');
-                  inputRefs.current[lastFilledIndex]?.focus();
-                }
-              }}
-              disabled={isLoading}
-            />
           </CardContent>
 
-          <CardFooter className="flex-col gap-3">
+          <CardFooter className="flex-col gap-4 pt-2">
             <Button
               variant="default"
-              className="w-full"
+              size="lg"
+              className="w-full h-14"
               onPress={handleSubmit}
               disabled={!isPinComplete || isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color="white" size="small" />
               ) : (
-                'Verify'
+                'Verify PIN'
               )}
             </Button>
             
             <Button
-              variant="ghost"
-              className="w-full"
+              variant="outline"
+              size="lg"
+              className="w-full h-12"
               onPress={handleClear}
               disabled={isLoading}
             >
@@ -202,122 +170,6 @@ export function PinEntryScreen({
           Your PIN is securely encrypted and never stored in plain text
         </Muted>
       </View>
-    </View>
-  );
-}
-
-
-/**
- * Individual PIN digit input component
- */
-interface PinDigitInputProps {
-  value: string;
-  onChangeText: (value: string) => void;
-  onKeyPress: (event: { nativeEvent: { key: string } }) => void;
-  editable?: boolean;
-  autoFocus?: boolean;
-}
-
-const PinDigitInput = React.forwardRef<TextInput, PinDigitInputProps>(
-  ({ value, onChangeText, onKeyPress, editable = true, autoFocus = false }, ref) => {
-    return (
-      <TextInput
-        ref={ref}
-        className={cn(
-          'w-12 h-14 rounded-lg border-2 text-center text-2xl font-bold',
-          'bg-background text-foreground',
-          value ? 'border-primary' : 'border-input',
-          !editable && 'opacity-50'
-        )}
-        value={value ? '•' : ''} // Show dot for entered digits (security)
-        onChangeText={onChangeText}
-        onKeyPress={onKeyPress}
-        keyboardType="number-pad"
-        maxLength={1}
-        editable={editable}
-        autoFocus={autoFocus}
-        secureTextEntry={false} // We handle masking manually with dots
-        selectTextOnFocus
-        caretHidden
-      />
-    );
-  }
-);
-
-PinDigitInput.displayName = 'PinDigitInput';
-
-/**
- * Numeric keypad component for PIN entry
- */
-interface NumericKeypadProps {
-  onDigitPress: (digit: string) => void;
-  onBackspace: () => void;
-  disabled?: boolean;
-}
-
-function NumericKeypad({ onDigitPress, onBackspace, disabled = false }: NumericKeypadProps) {
-  const keys = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-    ['', '0', 'backspace'],
-  ];
-
-  return (
-    <View className="gap-2">
-      {keys.map((row, rowIndex) => (
-        <View key={rowIndex} className="flex-row justify-center gap-2">
-          {row.map((key, keyIndex) => {
-            if (key === '') {
-              return <View key={keyIndex} className="w-16 h-14" />;
-            }
-
-            if (key === 'backspace') {
-              return (
-                <Pressable
-                  key={keyIndex}
-                  className={cn(
-                    'w-16 h-14 rounded-lg items-center justify-center',
-                    'bg-secondary active:bg-accent',
-                    disabled && 'opacity-50'
-                  )}
-                  onPress={onBackspace}
-                  disabled={disabled}
-                >
-                  <BackspaceIcon />
-                </Pressable>
-              );
-            }
-
-            return (
-              <Pressable
-                key={keyIndex}
-                className={cn(
-                  'w-16 h-14 rounded-lg items-center justify-center',
-                  'bg-secondary active:bg-accent',
-                  disabled && 'opacity-50'
-                )}
-                onPress={() => onDigitPress(key)}
-                disabled={disabled}
-              >
-                <Muted className="text-xl font-semibold text-foreground">{key}</Muted>
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/**
- * Simple backspace icon component
- */
-function BackspaceIcon() {
-  return (
-    <View className="flex-row items-center">
-      <View className="w-0 h-0 border-t-[8px] border-b-[8px] border-r-[8px] border-t-transparent border-b-transparent border-r-muted-foreground" />
-      <View className="w-4 h-4 bg-muted-foreground rounded-r-sm" />
     </View>
   );
 }
